@@ -12,6 +12,7 @@ import { KnownError } from './helpers/error';
 import clipboardy from 'clipboardy';
 import i18n from './helpers/i18n';
 import { appendToShellHistory } from './helpers/shell-history';
+import { createMarkdownRenderer } from './helpers/markdown-renderer';
 
 const init = async () => {
   try {
@@ -70,7 +71,7 @@ async function getPrompt(prompt?: string) {
         p.cancel(i18n.t('Goodbye!'));
         process.exit(0);
       },
-    }
+    },
   );
   return (await group).prompt;
 }
@@ -92,7 +93,7 @@ async function promptForRevision() {
         p.cancel(i18n.t('Goodbye!'));
         process.exit(0);
       },
-    }
+    },
   );
   return (await group).prompt;
 }
@@ -129,7 +130,11 @@ export async function prompt({
   console.log(dim('•'));
   if (!skipCommandExplanation) {
     spin.start(i18n.t(`Getting explanation...`));
-    const info = await readInfo(process.stdout.write.bind(process.stdout));
+    const infoRenderer = createMarkdownRenderer(
+      process.stdout.write.bind(process.stdout),
+    );
+    const info = await readInfo(infoRenderer.write);
+    infoRenderer.flush();
     if (!info) {
       const { readExplanation } = await getExplanation({
         script,
@@ -139,7 +144,11 @@ export async function prompt({
       });
       spin.stop(`${i18n.t('Explanation')}:`);
       console.log('');
-      await readExplanation(process.stdout.write.bind(process.stdout));
+      const explanationRenderer = createMarkdownRenderer(
+        process.stdout.write.bind(process.stdout),
+      );
+      await readExplanation(explanationRenderer.write);
+      explanationRenderer.flush();
       console.log('');
       console.log('');
       console.log(dim('•'));
@@ -154,7 +163,7 @@ async function runOrReviseFlow(
   key: string,
   model: string,
   apiEndpoint: string,
-  silentMode?: boolean
+  silentMode?: boolean,
 ) {
   const emptyScript = script.trim() === '';
 
@@ -223,7 +232,7 @@ async function revisionFlow(
   key: string,
   model: string,
   apiEndpoint: string,
-  silentMode?: boolean
+  silentMode?: boolean,
 ) {
   const revision = await promptForRevision();
   const spin = p.spinner();
@@ -255,7 +264,11 @@ async function revisionFlow(
 
     infoSpin.stop(`${i18n.t('Explanation')}:`);
     console.log('');
-    await readExplanation(process.stdout.write.bind(process.stdout));
+    const explanationRenderer = createMarkdownRenderer(
+      process.stdout.write.bind(process.stdout),
+    );
+    await readExplanation(explanationRenderer.write);
+    explanationRenderer.flush();
     console.log('');
     console.log('');
     console.log(dim('•'));
@@ -267,7 +280,7 @@ async function revisionFlow(
 export const parseAssert = (name: string, condition: any, message: string) => {
   if (!condition) {
     throw new KnownError(
-      `${i18n.t('Invalid config property')} ${name}: ${message}`
+      `${i18n.t('Invalid config property')} ${name}: ${message}`,
     );
   }
 };
