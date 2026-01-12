@@ -6,6 +6,7 @@ import { getConfig } from '../helpers/config';
 import { streamToIterable } from '../helpers/stream-to-iterable';
 import { ChatCompletionRequestMessage } from 'openai';
 import i18n from '../helpers/i18n';
+import { createMarkdownRenderer } from '../helpers/markdown-renderer';
 
 export default command(
   {
@@ -55,9 +56,12 @@ export default command(
 
       infoSpin.stop(`${green('AI Shell:')}`);
       console.log('');
-      const fullResponse = await readResponse(
-        process.stdout.write.bind(process.stdout)
+      const responseRenderer = createMarkdownRenderer(
+        process.stdout.write.bind(process.stdout),
       );
+      const fullResponse = await readResponse(responseRenderer.write);
+      responseRenderer.flush();
+
       chatHistory.push({
         role: 'assistant',
         content: fullResponse,
@@ -68,7 +72,7 @@ export default command(
     };
 
     prompt();
-  }
+  },
 );
 
 async function getResponse({
